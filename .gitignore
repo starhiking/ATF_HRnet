@@ -104,11 +104,12 @@ venv.bak/
 .mypy_cache/
 
 # cython generated cpp
-data
-.vscode
-.idea
-.DS_Store
+data/
+.vscode/
+.idea/
+.DS_Store/
 hrnetv2_pretrained/
-output
-log
+output/
+log/
 *.swp
+*.bak

@@ -1,2 +1,7 @@
 hdf5storage
 yacs
+pandas
+opencv-python
+scipy==1.2.1
+tensorboardX
+Pillow
