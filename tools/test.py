@@ -7,7 +7,7 @@
 import os
 import pprint
 import argparse
-
+import time
 import torch
 import torch.nn as nn
 import torch.backends.cudnn as cudnn
@@ -26,8 +26,8 @@ def parse_args():
     parser = argparse.ArgumentParser(description='Train Face Alignment')
 
     parser.add_argument('--cfg', help='experiment configuration filename',
-                        required=True, type=str)
-    parser.add_argument('--model-file', help='model parameters', required=True, type=str)
+                         type=str, default="experiments/wflw/face_alignment_wflw_hrnet_w18.yaml")
+    parser.add_argument('--model-file', help='model parameters',  type=str, default="hrnetv2_pretrained/HR18-WFLW.pth")
 
     args = parser.parse_args()
     update_config(config, args)
@@ -41,6 +41,8 @@ def main():
     logger, final_output_dir, tb_log_dir = \
         utils.create_logger(config, args.cfg, 'test')
 
+    os.environ["CUDA_VISIBLE_DEVICES"] = ",".join(str(gpu) for gpu in config.GPUS)
+
     logger.info(pprint.pformat(args))
     logger.info(pprint.pformat(config))
 
@@ -51,10 +53,14 @@ def main():
     config.defrost()
     config.MODEL.INIT_WEIGHTS = False
     config.freeze()
+
     model = models.get_face_alignment_net(config)
 
-    gpus = list(config.GPUS)
-    model = nn.DataParallel(model, device_ids=gpus).cuda()
+    devices = torch.device("cuda:0")
+    model = nn.DataParallel(model, device_ids=range(torch.cuda.device_count())).cuda()
+    model.to(devices)
+
+    print("load model success.")
 
     # load model
     state_dict = torch.load(args.model_file)
@@ -64,18 +70,22 @@ def main():
     else:
         model.module.load_state_dict(state_dict)
 
+    print("load weight paramters success.")
+
     dataset_type = get_dataset(config)
 
     test_loader = DataLoader(
         dataset=dataset_type(config,
                              is_train=False),
-        batch_size=config.TEST.BATCH_SIZE_PER_GPU*len(gpus),
+        batch_size=config.TEST.BATCH_SIZE_PER_GPU*torch.cuda.device_count(),
         shuffle=False,
         num_workers=config.WORKERS,
         pin_memory=config.PIN_MEMORY
     )
-
-    nme, predictions = function.inference(config, test_loader, model)
+    while True:
+        start_time = time.time()
+        nme, predictions = function.inference(config, test_loader, model)
+        print("epoch time : {}".format(time.time()-start_time))
 
     torch.save(predictions, os.path.join(final_output_dir, 'predictions.pth'))
 
