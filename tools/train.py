@@ -22,13 +22,15 @@ from lib.datasets import get_dataset
 from lib.core import function
 from lib.utils import utils
 
+# import torch.distributed as dist
+# dist.init_process_group(backend='nccl')
 
 def parse_args():
 
     parser = argparse.ArgumentParser(description='Train Face Alignment')
 
     parser.add_argument('--cfg', help='experiment configuration filename',
-                        required=True, type=str)
+                        type=str, default="experiments/aflw/face_alignment_aflw_hrnet_w18.yaml")
 
     args = parser.parse_args()
     update_config(config, args)
@@ -42,6 +44,8 @@ def main():
     logger, final_output_dir, tb_log_dir = \
         utils.create_logger(config, args.cfg, 'train')
 
+    os.environ["CUDA_VISIBLE_DEVICES"] = ",".join(str(gpu) for gpu in config.GPUS)
+    
     logger.info(pprint.pformat(args))
     logger.info(pprint.pformat(config))
 
@@ -58,8 +62,11 @@ def main():
         'valid_global_steps': 0,
     }
 
-    gpus = list(config.GPUS)
-    model = nn.DataParallel(model, device_ids=gpus).cuda()
+    devices = torch.device("cuda:0")
+    model = nn.DataParallel(model, device_ids=range(torch.cuda.device_count())).cuda()
+    model.to(devices)
+    # model = torch.nn.parallel.DistributedDataParallel(model,device_ids=range(torch.cuda.device_count()))
+    logger.info("load model success.")
 
     # loss
     criterion = torch.nn.MSELoss(size_average=True).cuda()
@@ -76,10 +83,10 @@ def main():
             best_nme = checkpoint['best_nme']
             model.load_state_dict(checkpoint['state_dict'])
             optimizer.load_state_dict(checkpoint['optimizer'])
-            print("=> loaded checkpoint (epoch {})"
+            logger.info("=> loaded checkpoint (epoch {})"
                   .format(checkpoint['epoch']))
         else:
-            print("=> no checkpoint found")
+            logger.info("=> no checkpoint found")
 
     if isinstance(config.TRAIN.LR_STEP, list):
         lr_scheduler = torch.optim.lr_scheduler.MultiStepLR(
@@ -93,21 +100,28 @@ def main():
         )
     dataset_type = get_dataset(config)
 
+    train_dataset = dataset_type(config,is_train=True)
+    val_dataset = dataset_type(config,is_train=False)
+
+    # train_sampler = torch.utils.data.distributed.DistributedSampler(train_dataset)
+    # val_sampler = torch.utils.data.distributed.DistributedSampler(val_dataset)
+
     train_loader = DataLoader(
-        dataset=dataset_type(config,
-                             is_train=True),
-        batch_size=config.TRAIN.BATCH_SIZE_PER_GPU*len(gpus),
+        dataset=train_dataset,
+        batch_size=config.TRAIN.BATCH_SIZE_PER_GPU*torch.cuda.device_count(),
         shuffle=config.TRAIN.SHUFFLE,
         num_workers=config.WORKERS,
-        pin_memory=config.PIN_MEMORY)
+        pin_memory=config.PIN_MEMORY
+        # sampler=train_sampler
+    )
 
     val_loader = DataLoader(
-        dataset=dataset_type(config,
-                             is_train=False),
-        batch_size=config.TEST.BATCH_SIZE_PER_GPU*len(gpus),
+        dataset=val_dataset,
+        batch_size=config.TEST.BATCH_SIZE_PER_GPU*torch.cuda.device_count(),
         shuffle=False,
         num_workers=config.WORKERS,
         pin_memory=config.PIN_MEMORY
+        # sampler=val_sampler
     )
 
     for epoch in range(last_epoch, config.TRAIN.END_EPOCH):
@@ -126,7 +140,7 @@ def main():
         logger.info('=> saving checkpoint to {}'.format(final_output_dir))
         print("best:", is_best)
         utils.save_checkpoint(
-            {"state_dict": model,
+            {"state_dict": model.state_dict(),
              "epoch": epoch + 1,
              "best_nme": best_nme,
              "optimizer": optimizer.state_dict(),
@@ -142,13 +156,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-
-
-
-
-
-
-
-
-
-
