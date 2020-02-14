@@ -32,6 +32,10 @@ def parse_args():
     parser.add_argument('--cfg', help='experiment configuration filename',
                         type=str, default="experiments/aflw/face_alignment_aflw_hrnet_w18.yaml")
 
+    parser.add_argument('--load_folder',type=str,default='output/AFLW/face_alignment_aflw_hrnet_w18/nose')
+    parser.add_argument('--save_folder',type=str,default='output/AFLW/face_alignment_aflw_hrnet_w18/face_lr0002')
+    parser.add_argument('--load_epoch',type=bool,default=False,help="If load epoch and lr infos")
+
     args = parser.parse_args()
     update_config(config, args)
     return args
@@ -43,6 +47,11 @@ def main():
 
     logger, final_output_dir, tb_log_dir = \
         utils.create_logger(config, args.cfg, 'train')
+
+    final_output_dir = args.load_folder
+    save_output_dir = args.save_folder
+    if not os.path.exists(save_output_dir):
+        os.mkdir(save_output_dir)
 
     os.environ["CUDA_VISIBLE_DEVICES"] = ",".join(str(gpu) for gpu in config.GPUS)
     
@@ -79,10 +88,11 @@ def main():
                                         'latest.pth')
         if os.path.islink(model_state_file):
             checkpoint = torch.load(model_state_file)
-            last_epoch = checkpoint['epoch']
-            best_nme = checkpoint['best_nme']
+            if args.load_epoch : 
+                last_epoch = checkpoint['epoch']
+                optimizer.load_state_dict(checkpoint['optimizer'])
+                best_nme = checkpoint['best_nme']
             model.load_state_dict(checkpoint['state_dict'])
-            optimizer.load_state_dict(checkpoint['optimizer'])
             logger.info("=> loaded checkpoint (epoch {})"
                   .format(checkpoint['epoch']))
         else:
@@ -137,16 +147,16 @@ def main():
         is_best = nme < best_nme
         best_nme = min(nme, best_nme)
 
-        logger.info('=> saving checkpoint to {}'.format(final_output_dir))
+        logger.info('=> saving checkpoint to {}'.format(save_output_dir))
         print("best:", is_best)
         utils.save_checkpoint(
             {"state_dict": model.state_dict(),
              "epoch": epoch + 1,
              "best_nme": best_nme,
              "optimizer": optimizer.state_dict(),
-             }, predictions, is_best, final_output_dir, 'checkpoint_{}.pth'.format(epoch))
+             }, predictions, is_best, save_output_dir, 'checkpoint_{}.pth'.format(epoch))
 
-    final_model_state_file = os.path.join(final_output_dir,
+    final_model_state_file = os.path.join(save_output_dir,
                                           'final_state.pth')
     logger.info('saving final model state to {}'.format(
         final_model_state_file))
