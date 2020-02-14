@@ -8,7 +8,8 @@ import sys
 sys.path.append('..')
 
 nose_rect_index = {
-    'aflw':[8,9,12,13,14]
+    'aflw':[8,9,12,13,14],
+    'wflw':[51,52,53,54,55,56,57,58,58,64,68]
 }
 
 def get_rect(index_array,landmarks,img_shape):
@@ -50,11 +51,11 @@ def parse_args():
     parser = argparse.ArgumentParser(description='Gen Nose image dataset')
 
     parser.add_argument('--Dataset', help='experiment dataset name',
-                        type=str, default="aflw")
+                        type=str, default="wflw")
     parser.add_argument('--Train_type', help='experiment dataset type',
-                        type=str, default="train")
+                        type=str, default="test")
     parser.add_argument('--Gen_folder', help='generate dataset folder',
-                        type=str, default="nose_image")
+                        type=str, default="nose_images")
 
     args = parser.parse_args()
     return args
@@ -85,7 +86,11 @@ def main():
         else:
             nose_img = np.zeros(img.shape,dtype=np.int)
 
-        landmarks = landmark_frame.iloc[i,5:].values
+        if args.Dataset == 'wflw':
+            landmarks = landmark_frame.iloc[i,4:].values
+        else :
+            landmarks = landmark_frame.iloc[i,5:].values
+
         landmarks = landmarks.astype('int').reshape(-1, 2)
         
         left_top, right_bottom = get_rect(nose_rect_index[args.Dataset],landmarks,img.shape)
