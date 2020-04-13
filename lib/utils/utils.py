@@ -44,6 +44,7 @@ def create_logger_direct(logfile):
     log_file = "{}_{}.log".format(logfile , time.strftime('_%m%d_%H%M%S'))
 
     final_log_file = os.path.join("mix",'logs',log_file)
+    check_mkdir('/'.join(final_log_file.split('/')[:-1]))
     if os.path.exists(final_log_file):
         print("Current log file is exist")
         raise("Log file alread exist")
