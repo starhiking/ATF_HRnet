@@ -112,7 +112,10 @@ _C.TEST.BATCH_SIZE_PER_GPU = 32
 
 def update_config(cfg, args):
     cfg.defrost()
-    cfg.merge_from_file(args.cfg)
+    if type(args) == str:
+        cfg.merge_from_file(args)
+    else:
+        cfg.merge_from_file(args.cfg)
     cfg.freeze()
 
 

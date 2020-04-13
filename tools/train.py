@@ -30,12 +30,12 @@ def parse_args():
     parser = argparse.ArgumentParser(description='Train Face Alignment')
 
     parser.add_argument('--cfg', help='experiment configuration filename',
-                        type=str, default="experiments/aflw/face_alignment_aflw_hrnet_w18.yaml")
+                        type=str, default="experiments/wflw/face_alignment_wflw_hrnet_w18.yaml")
 
-    parser.add_argument('--load_folder',type=str,default='output/AFLW/face_alignment_aflw_hrnet_w18/nose')
-    parser.add_argument('--save_folder',type=str,default='output/AFLW/face_alignment_aflw_hrnet_w18/face_lr0002')
+    parser.add_argument('--load_folder',type=str,default='output/WFLW/face_alignment_wflw_hrnet_w18')
+    parser.add_argument('--save_folder',type=str,default='output/WFLW/face_alignment_wflw_hrnet_w18/lossL1')
     parser.add_argument('--load_epoch',type=bool,default=False,help="If load epoch and lr infos")
-
+    parser.add_argument('--load_best',type=bool,default=True,help="If load best checkpoint.")
     args = parser.parse_args()
     update_config(config, args)
     return args
@@ -79,6 +79,7 @@ def main():
 
     # loss
     criterion = torch.nn.MSELoss(size_average=True).cuda()
+    # criterion = torch.nn.SmoothL1Loss(size_average=True).cuda()
 
     optimizer = utils.get_optimizer(config, model)
     best_nme = 100
@@ -95,6 +96,12 @@ def main():
             model.load_state_dict(checkpoint['state_dict'])
             logger.info("=> loaded checkpoint (epoch {})"
                   .format(checkpoint['epoch']))
+            best_checkpoint_path = os.path.join(final_output_dir,'model_best.pth')
+            if args.load_best and os.path.exists(best_checkpoint_path):
+                best_checkpoint = torch.load(best_checkpoint_path)
+                model.load_state_dict(best_checkpoint)
+                best_nme = checkpoint['best_nme']
+                logger.info("=> loaded best checkpoint.")
         else:
             logger.info("=> no checkpoint found")
 
@@ -135,8 +142,7 @@ def main():
     )
 
     for epoch in range(last_epoch, config.TRAIN.END_EPOCH):
-        lr_scheduler.step()
-
+        
         function.train(config, train_loader, model, criterion,
                        optimizer, epoch, writer_dict)
 
@@ -155,6 +161,9 @@ def main():
              "best_nme": best_nme,
              "optimizer": optimizer.state_dict(),
              }, predictions, is_best, save_output_dir, 'checkpoint_{}.pth'.format(epoch))
+
+        lr_scheduler.step()
+
 
     final_model_state_file = os.path.join(save_output_dir,
                                           'final_state.pth')
