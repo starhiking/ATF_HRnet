@@ -8,8 +8,9 @@ from .aflw import AFLW
 from .cofw import COFW
 from .face300w import Face300W
 from .wflw import WFLW
+from .multi_dataset import MULTI_DataLoader
 
-__all__ = ['AFLW', 'COFW', 'Face300W', 'WFLW', 'get_dataset']
+__all__ = ['AFLW', 'COFW', 'Face300W', 'WFLW', 'get_dataset', "MULTI_DataLoader"]
 
 
 def get_dataset(config):

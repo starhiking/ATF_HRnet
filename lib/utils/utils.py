@@ -17,6 +17,48 @@ from pathlib import Path
 import torch
 import torch.optim as optim
 
+def lr_repr(optim):
+    _lr_repr_ = 'lr:'
+    for pg in optim.param_groups:
+        _lr_repr_ += ' {} '.format(pg['lr'])
+    return _lr_repr_
+
+
+def check_mkdir(str_path):
+    paths = str_path.split('/')
+    # temp_folder = paths[0]
+    temp_folder = ""
+    for i in range (len(paths)):
+        temp_folder = os.path.join(temp_folder,paths[i])
+        if not os.path.exists(temp_folder):
+            print("INFO: {} not exist , created.".format(temp_folder))
+            os.mkdir(temp_folder)
+    
+    assert os.path.exists(str_path) , "{} not created success.".format(str_path)
+    
+def create_logger_direct(logfile):
+
+    if not os.path.exists('logs'):
+        os.mkdir('logs')
+    
+    log_file = "{}_{}.log".format(logfile , time.strftime('_%m%d_%H%M%S'))
+
+    final_log_file = os.path.join("mix",'logs',log_file)
+    if os.path.exists(final_log_file):
+        print("Current log file is exist")
+        raise("Log file alread exist")
+
+    logging.basicConfig(
+        format=
+        '[%(asctime)s] [%(filename)s:%(lineno)d] [%(levelname)s] %(message)s',
+        level=logging.INFO,
+        handlers=[
+            logging.FileHandler(final_log_file, mode='w'),
+            logging.StreamHandler()
+        ])                        
+    logger = logging.getLogger()
+    
+    return logger
 
 def create_logger(cfg, cfg_name, phase='train'):
     root_output_dir = Path(cfg.OUTPUT_DIR)
