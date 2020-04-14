@@ -34,6 +34,7 @@ def parse_args():
     parser.add_argument('--main_data', type=str, default="wflw")
     parser.add_argument('--aux_datas',type=str,default='300w,aflw')
     parser.add_argument('--aux_ratios',type=str,default='5,1,1')
+    parser.add_argument('--heatmap_sigma',type=float,default=1.5)
 
     parser.add_argument('--resume_checkpoints',type=str,default="")
     parser.add_argument('--model_dir',type=str,default="5_1_1")
@@ -214,7 +215,7 @@ def main():
         # adjust ratios
         args.aux_ratios = args.aux_ratios * ratio_speed_array
         mix_train_dataloader.change_ratios(args.aux_ratios)
-
+        print("Change Training data ratios : {}".format(args.aux_ratios))
         # validate main dataset
         val_nme, predictions = function.mix_val(config,main_val_loader,backbone,heads[str(config.MODEL.NUM_JOINTS)],criterion,epoch)
         

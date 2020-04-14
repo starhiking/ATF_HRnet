@@ -80,7 +80,7 @@ def train(config, train_loader, model, critertion, optimizer,
         losses.update(loss.item(), inp.size(0))
 
         batch_time.update(time.time()-end)
-        if i % config.PRINT_FREQ == 0:
+        if i % config.PRINT_FREQ == 0 and i != 0:
             msg = 'Epoch: [{0}][{1}/{2}]\t' \
                   'Time {batch_time.val:.3f}s ({batch_time.avg:.3f}s)\t' \
                   'Speed {speed:.1f} samples/s\t' \
@@ -118,6 +118,7 @@ def mix_val(aux_config, val_loader, backbone,head, criterion, epoch):
     nme_batch_sum = 0
     count_failure_008 = 0
     count_failure_010 = 0
+    start_time = time.time()
 
     with torch.no_grad():
         for i, (inp, target, meta) in enumerate(val_loader):
@@ -150,9 +151,9 @@ def mix_val(aux_config, val_loader, backbone,head, criterion, epoch):
     failure_008_rate = count_failure_008 / nme_count
     failure_010_rate = count_failure_010 / nme_count
 
-    msg = 'Test Epoch {} {} loss:{:.4f} nme:{:.4f} [008]:{:.4f} ' \
-          '[010]:{:.4f}'.format(epoch,aux_config.MODEL.NUM_JOINTS,losses.avg, nme,
-                                failure_008_rate, failure_010_rate)
+    msg = 'Test Epoch {} time:{:.3f}s  {} loss:{:.6f} nme:{:.3f}% [008]:{:.3f} ' \
+          '[010]:{:.3f}'.format(epoch,time.time()-start_time,aux_config.MODEL.NUM_JOINTS,losses.avg, nme*100.0,
+                                failure_008_rate*100.0, failure_010_rate*100.0)
     logger.info(msg)
 
     return nme, predictions
