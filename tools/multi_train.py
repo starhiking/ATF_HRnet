@@ -46,6 +46,7 @@ def parse_args():
     parser.add_argument('--batch_size',type=int,default=48)
     parser.add_argument('--ratios_decay',type=float,default=1.0)
     parser.add_argument('--workers',type=int,default=4)
+    parser.add_argument('--show_others',type=int,default=0)
 
     args = parser.parse_args()
     main_cfg = os.path.join("experiments",args.main_data,"face_alignment_{}_hrnet_w18.yaml".format(args.main_data))
@@ -219,9 +220,10 @@ def main():
         # validate main dataset
         val_nme, predictions = function.mix_val(config,main_val_loader,backbone,heads[str(config.MODEL.NUM_JOINTS)],criterion,epoch)
         
-        # validate aux dataset
-        for key in aux_configs.keys():
-            function.mix_val(aux_configs[key],aux_dataloader['test'][key],backbone,heads[key],criterion,epoch)
+        if args.show_others:
+            # validate aux dataset
+            for key in aux_configs.keys():
+                function.mix_val(aux_configs[key],aux_dataloader['test'][key],backbone,heads[key],criterion,epoch)
         
         # save better checkpoint
         if val_nme < best_nme:
