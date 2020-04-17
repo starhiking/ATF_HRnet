@@ -38,12 +38,13 @@ def parse_args():
 
     parser.add_argument('--resume_checkpoints',type=str,default="")
     parser.add_argument('--model_dir',type=str,default="5_1_1")
+    parser.add_argument('--data_aug',default=False,action='store_true',help="control aux datas augmentation")
 
     parser.add_argument('--gpus',type=str,default='7')
     parser.add_argument('--backbone_lr',type=float,default=1.5e-4)
     parser.add_argument('--main_lr',type=float,default=2e-4)
-    parser.add_argument('--aux_lr',type=float,default=1e-4)
-    parser.add_argument('--batch_size',type=int,default=48)
+    parser.add_argument('--aux_lr',type=float,default=2e-4)
+    parser.add_argument('--batch_size',type=int,default=32)
     parser.add_argument('--ratios_decay',type=float,default=1.0)
     parser.add_argument('--workers',type=int,default=4)
     parser.add_argument('--show_others',type=int,default=0)
@@ -132,7 +133,7 @@ def main():
 
 
     main_dataset = get_dataset(config)
-    main_train_dataset = main_dataset(config,is_train=True)
+    main_train_dataset = main_dataset(config,is_train=True, is_aug=True)
     main_val_dataset = main_dataset(config,is_train=False)
     main_train_loader = DataLoader(
         dataset=main_train_dataset,
@@ -153,23 +154,24 @@ def main():
     aux_dataloader = {'train':[],"test":{}}
     for key in aux_configs.keys():
         temp_dataset = get_dataset(aux_configs[key])
-        temp_train_dataset = temp_dataset(aux_configs[key],is_train=True)
-        temp_test_dataset = temp_dataset(aux_configs[key],is_train=False)
+        temp_train_dataset = temp_dataset(aux_configs[key],is_train=True, is_aug=args.data_aug)
         aux_dataloader['train'].append(DataLoader(
             dataset = temp_train_dataset,
             batch_size= args.batch_size * gpu_nums,
             shuffle= True,
             num_workers = args.workers,
-            pin_memory= False
+            pin_memory= True
         ))
 
-        aux_dataloader['test'][key] = DataLoader(
-            dataset=temp_test_dataset,
-            batch_size=args.batch_size * gpu_nums ,
-            shuffle=True,
-            num_workers=args.workers ,
-            pin_memory=False
-        )
+        if args.show_others:
+            temp_test_dataset = temp_dataset(aux_configs[key],is_train=False)
+            aux_dataloader['test'][key] = DataLoader(
+                dataset=temp_test_dataset,
+                batch_size=args.batch_size * gpu_nums ,
+                shuffle=True,
+                num_workers=args.workers ,
+                pin_memory=True
+            )
 
     mix_train_dataloader = MULTI_DataLoader(main_train_loader,aux_dataloader['train'],args.aux_ratios)
     ratio_speed_array = [1] + [args.ratios_decay] * (args.aux_ratios.size -1) # each epoch ratio will reduce
