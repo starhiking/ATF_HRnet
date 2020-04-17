@@ -17,7 +17,7 @@ from ..utils.transforms import fliplr_joints, crop, generate_target, transform_p
 
 class COFW(data.Dataset):
 
-    def __init__(self, cfg, is_train=True, transform=None):
+    def __init__(self, cfg, is_train=True, transform=None,is_aug=True):
         # specify annotation file for dataset
         if is_train:
             self.mat_file = cfg.DATASET.TRAINSET
@@ -26,6 +26,7 @@ class COFW(data.Dataset):
 
         self.is_train = is_train
         self.transform = transform
+        self.is_aug = is_aug
         self.data_root = cfg.DATASET.ROOT
         self.input_size = cfg.MODEL.IMAGE_SIZE
         self.output_size = cfg.MODEL.HEATMAP_SIZE
@@ -75,7 +76,7 @@ class COFW(data.Dataset):
         nparts = pts.shape[0]
 
         r = 0
-        if self.is_train:
+        if self.is_train and self.is_aug:
             scale = scale * (random.uniform(1 - self.scale_factor,
                                             1 + self.scale_factor))
             r = random.uniform(-self.rot_factor, self.rot_factor) \
