@@ -36,8 +36,17 @@ def parse_args():
     parser.add_argument('--save_folder',type=str,default='output/WFLW/face_alignment_wflw_hrnet_w18/lossL1')
     parser.add_argument('--load_epoch',type=bool,default=False,help="If load epoch and lr infos")
     parser.add_argument('--load_best',type=bool,default=True,help="If load best checkpoint.")
+    parser.add_argument('--pretrained',type=str,default="")
+    parser.add_argument('--gpus',type=str,default="0")
+    parser.add_argument('--lr',type=float,default=1e-4)
+
     args = parser.parse_args()
     update_config(config, args)
+    
+    config["TRAIN"]["LR"] = args.lr
+    if args.pretrained :
+        config["MODEL"]["PRETRAINED"] = args.pretrained
+
     return args
 
 
@@ -53,8 +62,9 @@ def main():
     if not os.path.exists(save_output_dir):
         os.mkdir(save_output_dir)
 
-    os.environ["CUDA_VISIBLE_DEVICES"] = ",".join(str(gpu) for gpu in config.GPUS)
-    
+    # os.environ["CUDA_VISIBLE_DEVICES"] = ",".join(str(gpu) for gpu in config.GPUS)
+    os.environ["CUDA_VISIBLE_DEVICES"] = args.gpus
+
     logger.info(pprint.pformat(args))
     logger.info(pprint.pformat(config))
 

@@ -460,7 +460,7 @@ class HighResolutionNet(nn.Module):
             logger.info('=> loading pretrained model {}'.format(pretrained))
             model_dict = self.state_dict()
             pretrained_dict = {k: v for k, v in pretrained_dict.items()
-                               if k in model_dict.keys()}
+                               if k in model_dict.keys() and model_dict[k].shape == v.shape}
             for k, _ in pretrained_dict.items():
                 logger.info(
                     '=> loading {} pretrained model {}'.format(k, pretrained))
