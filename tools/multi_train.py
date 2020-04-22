@@ -24,8 +24,13 @@ from lib.core import function
 from lib.utils import utils
 import numpy as np
 import time
-# import torch.distributed as dist
-# dist.init_process_group(backend='nccl')
+
+same_index = {
+    '98':[33,46,60,64,68,72,54,76,82,16],
+    '68':[17,26,36,39,42,45,30,48,54,8],
+    '19':[0,5,6,8,9,11,13,15,17,18]
+}
+
 
 def parse_args():
 
@@ -38,8 +43,7 @@ def parse_args():
 
     parser.add_argument('--resume_checkpoints',type=str,default="")
     parser.add_argument('--model_dir',type=str,default="5_1_1")
-    parser.add_argument('--data_aug',default=False,action='store_true',help="control aux datas augmentation")
-
+    
     parser.add_argument('--gpus',type=str,default='7')
     parser.add_argument('--backbone_lr',type=float,default=1.5e-4)
     parser.add_argument('--main_lr',type=float,default=2e-4)
@@ -48,6 +52,9 @@ def parse_args():
     parser.add_argument('--ratios_decay',type=float,default=1.0)
     parser.add_argument('--workers',type=int,default=4)
     parser.add_argument('--show_others',type=int,default=0)
+    
+    parser.add_argument('--mix_loss',default=False,action='store_true',help="use mix loss in trainging")
+    parser.add_argument('--data_aug',default=False,action='store_true',help="control aux datas augmentation")
 
     args = parser.parse_args()
     main_cfg = os.path.join("experiments",args.main_data,"face_alignment_{}_hrnet_w18.yaml".format(args.main_data))
@@ -147,7 +154,7 @@ def main():
         dataset=main_val_dataset,
         batch_size=args.batch_size * gpu_nums,
         shuffle=True,
-        num_workers=args.workers ,
+        num_workers=args.workers,
         pin_memory=True
     )
 
@@ -202,6 +209,21 @@ def main():
 
             target = target.cuda(non_blocking = True)
             loss = criterion(output,target)
+
+            if args.mix_loss:
+                if output.size(1) == config.MODEL.NUM_JOINTS:
+                    # when iteration is main
+                    main_indexs = same_index[current_landmark_num]
+                    for key in aux_configs.keys():
+                        temp_output = heads[key](feature_map).cuda()
+                        temp_indexs = same_index[str(temp_output.size(1))]
+                        loss = loss + criterion(output[:,main_indexs],temp_output[:,temp_indexs])
+                else :
+                    # when iteration is auxiliary
+                    main_output = heads[str(config.MODEL.NUM_JOINTS)](feature_map).cuda()
+                    main_indexs = same_index[str(config.MODEL.NUM_JOINTS)]
+                    aux_indexs  = same_index[current_landmark_num]
+                    loss = loss + criterion(output[:,aux_indexs],main_output[:,main_indexs])
 
             # optimize 
             optimizer_backbone.zero_grad()
