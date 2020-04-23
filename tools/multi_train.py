@@ -40,6 +40,7 @@ def parse_args():
     parser.add_argument('--aux_datas',type=str,default='300w,aflw')
     parser.add_argument('--aux_ratios',type=str,default='5,1,1')
     parser.add_argument('--heatmap_sigma',type=float,default=1.5)
+    parser.add_argument('--aug_sigma',type=float,default=1.5)
 
     parser.add_argument('--resume_checkpoints',type=str,default="")
     parser.add_argument('--model_dir',type=str,default="5_1_1")
@@ -59,6 +60,8 @@ def parse_args():
     args = parser.parse_args()
     main_cfg = os.path.join("experiments",args.main_data,"face_alignment_{}_hrnet_w18.yaml".format(args.main_data))
     update_config(config,main_cfg)
+    
+    config["MODEL"]["SIGMA"] = args.heatmap_sigma
     return args
 
 
@@ -83,7 +86,7 @@ def main():
     cudnn.determinstic = config.CUDNN.DETERMINISTIC
     cudnn.enabled = config.CUDNN.ENABLED
 
-    backbone , heads , aux_configs = models.get_face_alignment_nets(config,args.aux_datas)
+    backbone , heads , aux_configs = models.get_face_alignment_nets(config,args.aux_datas,aug_sigma=args.aug_sigma)
     criterion = torch.nn.MSELoss(size_average=True).cuda()
 
     backbone = nn.DataParallel(backbone,range(gpu_nums)).cuda()

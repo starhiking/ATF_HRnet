@@ -491,7 +491,7 @@ class HRNET_HEAD(nn.Module):
             model_dict.update(pretrained_dict)
             self.load_state_dict(model_dict)
 
-def get_face_alignment_nets(config,data_types):
+def get_face_alignment_nets(config,data_types,aug_sigma=1.5):
     # create model not init the params
     backbone = HRNET_BACKBONE(config)
     pretrained = config.MODEL.PRETRAINED if config.MODEL.INIT_WEIGHTS else ''
@@ -505,6 +505,7 @@ def get_face_alignment_nets(config,data_types):
     for data_type in data_types:
         temp_config = copy.deepcopy(config)
         update_config(temp_config,os.path.join("experiments",data_type,"face_alignment_{}_hrnet_w18.yaml".format(data_type)))
+        temp_config["MODEL"]["SIGMA"] = aug_sigma
         aux_configs[str(temp_config.MODEL.NUM_JOINTS)] = temp_config
         heads[str(temp_config.MODEL.NUM_JOINTS)] = HRNET_HEAD(temp_config.MODEL.NUM_JOINTS)
         heads[str(temp_config.MODEL.NUM_JOINTS)].init_weights(pretrained=temp_config.MODEL.PRETRAINED)
