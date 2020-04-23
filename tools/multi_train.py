@@ -1,9 +1,3 @@
-# ------------------------------------------------------------------------------
-# Copyright (c) Microsoft
-# Licensed under the MIT License.
-# Created by Tianheng Cheng(tianhengcheng@gmail.com)
-# ------------------------------------------------------------------------------
-
 import os
 import pprint
 import argparse
