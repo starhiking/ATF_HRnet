@@ -22,6 +22,7 @@ import time
 same_index = {
     '98':[33,46,60,64,68,72,54,76,82,16],
     '68':[17,26,36,39,42,45,30,48,54,8],
+    '29':[0,1,8,10,11,9,20,22,23,28],
     '19':[0,5,6,8,9,11,13,15,17,18]
 }
 
@@ -50,6 +51,8 @@ def parse_args():
     
     parser.add_argument('--mix_loss',default=False,action='store_true',help="use mix loss in trainging")
     parser.add_argument('--data_aug',default=False,action='store_true',help="control aux datas augmentation")
+
+    parser.add_argument('--loss_alpha',type=float,default=0.1)
 
     args = parser.parse_args()
     main_cfg = os.path.join("experiments",args.main_data,"face_alignment_{}_hrnet_w18.yaml".format(args.main_data))
@@ -214,7 +217,7 @@ def main():
                     for key in aux_configs.keys():
                         temp_output = heads[key](feature_map).cuda()
                         temp_indexs = same_index[str(temp_output.size(1))]
-                        loss = loss + criterion(output[:,main_indexs],temp_output[:,temp_indexs])
+                        loss = loss + args.loss_alpha * criterion(output[:,main_indexs],temp_output[:,temp_indexs])
                 else :
                     # when iteration is auxiliary
                     main_output = heads[str(config.MODEL.NUM_JOINTS)](feature_map).cuda()
