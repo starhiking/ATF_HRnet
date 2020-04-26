@@ -223,7 +223,7 @@ def main():
                     main_output = heads[str(config.MODEL.NUM_JOINTS)](feature_map).cuda()
                     main_indexs = same_index[str(config.MODEL.NUM_JOINTS)]
                     aux_indexs  = same_index[current_landmark_num]
-                    loss = loss + criterion(output[:,aux_indexs],main_output[:,main_indexs])
+                    loss = args.loss_alpha * loss + criterion(output[:,aux_indexs],main_output[:,main_indexs])
 
             # optimize 
             optimizer_backbone.zero_grad()
