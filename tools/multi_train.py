@@ -52,8 +52,8 @@ def parse_args():
     parser.add_argument('--mix_loss',default=False,action='store_true',help="use mix loss in trainging")
     parser.add_argument('--data_aug',default=False,action='store_true',help="control aux datas augmentation")
 
-    parser.add_argument('--loss_alpha',type=float,default=0.1)
-
+    parser.add_argument('--loss_alpha',type=float,default=1.0)
+    parser.add_argument('--loss_decay',type=float,default=1.0)
     args = parser.parse_args()
     main_cfg = os.path.join("experiments",args.main_data,"face_alignment_{}_hrnet_w18.yaml".format(args.main_data))
     update_config(config,main_cfg)
@@ -240,7 +240,9 @@ def main():
         # adjust ratios
         args.aux_ratios = args.aux_ratios * ratio_speed_array
         mix_train_dataloader.change_ratios(args.aux_ratios)
-        print("Change Training data ratios : {}".format(args.aux_ratios))
+        args.loss_alpha = args.loss_alpha * args.loss_decay
+        print("Change Training data ratios : {:.4f} Mixed Loss alpha: {:.4f}".format(args.aux_ratios,args.loss_alpha))
+
         # validate main dataset
         val_nme, predictions = function.mix_val(config,main_val_loader,backbone,heads[str(config.MODEL.NUM_JOINTS)],criterion,epoch)
         
