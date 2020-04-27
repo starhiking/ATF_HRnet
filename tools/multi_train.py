@@ -52,7 +52,7 @@ def parse_args():
     parser.add_argument('--mix_loss',default=False,action='store_true',help="use mix loss in trainging")
     parser.add_argument('--data_aug',default=False,action='store_true',help="control aux datas augmentation")
 
-    parser.add_argument('--loss_alpha',type=float,default=1.0)
+    parser.add_argument('--loss_alpha',type=float,default=0.003)
     parser.add_argument('--loss_decay',type=float,default=1.0)
     args = parser.parse_args()
     main_cfg = os.path.join("experiments",args.main_data,"face_alignment_{}_hrnet_w18.yaml".format(args.main_data))
@@ -182,6 +182,7 @@ def main():
 
     mix_train_dataloader = MULTI_DataLoader(main_train_loader,aux_dataloader['train'],args.aux_ratios)
     ratio_speed_array = [1] + [args.ratios_decay] * (args.aux_ratios.size -1) # each epoch ratio will reduce
+    last_loss_alpha = [1,1,1] # main_right, aux_left, aux_right
 
     for epoch in range(0,config.TRAIN.END_EPOCH):
         logger.info("Use {} train epoch {}".format(utils.lr_repr(optimizer_backbone),epoch))
@@ -190,6 +191,16 @@ def main():
         mix_train_dataloader.init_iter()
         train_loss = function.AverageMeter()
         train_loss.reset()
+
+        main_left_loss = function.AverageMeter()
+        main_left_loss.reset()
+        main_right_loss = function.AverageMeter()
+        main_right_loss.reset()
+
+        aux_left_loss = function.AverageMeter()
+        aux_left_loss.reset()
+        aux_right_loss = function.AverageMeter()
+        aux_right_loss.reset()
 
         backbone.train()
         for key in heads.keys():
@@ -213,17 +224,25 @@ def main():
             if args.mix_loss:
                 if output.size(1) == config.MODEL.NUM_JOINTS:
                     # when iteration is main
+                    main_left_loss.update(loss.item(),inp.size(0))
                     main_indexs = same_index[current_landmark_num]
                     for key in aux_configs.keys():
                         temp_output = heads[key](feature_map).cuda()
                         temp_indexs = same_index[str(temp_output.size(1))]
-                        loss = loss + args.loss_alpha * criterion(output[:,main_indexs],temp_output[:,temp_indexs])
+                        right_loss = criterion(output[:,main_indexs],temp_output[:,temp_indexs])
+                        main_right_loss.update(right_loss.item(),inp.size(0))  
+                        print('main: left loss {} right loss {}'.format(loss.item(),last_loss_alpha[0]*right_loss.item()))
+                        loss = loss + last_loss_alpha[0] * right_loss
                 else :
                     # when iteration is auxiliary
+                    aux_left_loss.update(loss.item(),inp.size(0))
                     main_output = heads[str(config.MODEL.NUM_JOINTS)](feature_map).cuda()
                     main_indexs = same_index[str(config.MODEL.NUM_JOINTS)]
                     aux_indexs  = same_index[current_landmark_num]
-                    loss = args.loss_alpha * loss + criterion(output[:,aux_indexs],main_output[:,main_indexs])
+                    right_loss = criterion(output[:,aux_indexs],main_output[:,main_indexs])
+                    aux_right_loss.update(right_loss.item(),inp.size(0))
+                    print('aux: left loss {} right loss {}'.format(last_loss_alpha[1]*loss.item(),last_loss_alpha[2]*right_loss.item()))
+                    loss = last_loss_alpha[1] * loss + last_loss_alpha[2] * right_loss
 
             # optimize 
             optimizer_backbone.zero_grad()
@@ -235,13 +254,25 @@ def main():
             optimizer_heads[current_landmark_num].step()
             train_loss.update(loss.item(),inp.size(0))
 
+            # adjust loss alpha
+            '''
+                ratios : 
+                    1,   0.2
+                    0.5, 0.1
+            '''
+            last_loss_alpha[0] = 0.2 * main_left_loss.avg / main_right_loss.avg
+            last_loss_alpha[1] = 0.5 * main_left_loss.avg / aux_left_loss.avg
+            last_loss_alpha[2] = 0.1 * main_left_loss.avg / aux_right_loss.avg
+
         logger.info("{}'epoch train time :{:<6.2f}s loss :{:.8f} ".format(epoch,time.time()-start_time,train_loss.avg))
 
         # adjust ratios
         args.aux_ratios = args.aux_ratios * ratio_speed_array
         mix_train_dataloader.change_ratios(args.aux_ratios)
         args.loss_alpha = args.loss_alpha * args.loss_decay
-        print("Change Training data ratios : {:.4f} Mixed Loss alpha: {:.4f}".format(args.aux_ratios,args.loss_alpha))
+        
+        
+        print("Change Training data ratios : {} Mixed Loss alpha: {:.4f}".format(args.aux_ratios,args.loss_alpha))
 
         # validate main dataset
         val_nme, predictions = function.mix_val(config,main_val_loader,backbone,heads[str(config.MODEL.NUM_JOINTS)],criterion,epoch)
