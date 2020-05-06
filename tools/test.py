@@ -15,6 +15,40 @@ from lib.datasets import get_dataset
 from lib.core import function
 
 
+test_files = {
+    "WFLW":None,
+    "300W":None,
+    "AFLW":None,
+    "COFW":None
+}
+
+test_files["WFLW"] = [ 
+    # "data/wflw/face_landmarks_wflw_test_blur.csv",
+    # "data/wflw/face_landmarks_wflw_test_expression.csv",
+    # "data/wflw/face_landmarks_wflw_test_illumination.csv",
+    # "data/wflw/face_landmarks_wflw_test_largepose.csv",
+    # "data/wflw/face_landmarks_wflw_test_makeup.csv",
+    # "data/wflw/face_landmarks_wflw_test_occlusion.csv",
+    "data/wflw/face_landmarks_wflw_test.csv"
+    ]
+
+test_files["300W"] = [
+    "data/300w/face_landmarks_300w_valid_challenge.csv",
+    "data/300w/face_landmarks_300w_valid_common.csv",
+    "data/300w/face_landmarks_300w_valid.csv",
+    "data/300w/face_landmarks_300w_test.csv"
+    ]
+
+test_files["AFLW"] = [
+    "data/aflw/face_landmarks_aflw_test_frontal.csv",
+    "data/aflw/face_landmarks_aflw_test.csv",
+]
+
+test_files["COFW"] = [
+    "data/cofw/COFW_test_color.mat"
+]
+
+
 def parse_args():
 
     parser = argparse.ArgumentParser(description='Train Face Alignment')
@@ -66,22 +100,27 @@ def main():
 
     print("load weight paramters success.")
 
-    dataset_type = get_dataset(config)
+    for file_path in test_files[str(config.DATASET.DATASET)]:
+        config["DATASET"]["TESTSET"] = file_path
+        dataset_type = get_dataset(config)
 
-    test_loader = DataLoader(
-        dataset=dataset_type(config,
-                             is_train=False),
-        batch_size=config.TEST.BATCH_SIZE_PER_GPU*torch.cuda.device_count(),
-        shuffle=False,
-        num_workers=config.WORKERS,
-        pin_memory=config.PIN_MEMORY
-    )
-    while True:
+        test_loader = DataLoader(
+            dataset=dataset_type(config,
+                                is_train=False),
+            batch_size=32,
+            shuffle=False,
+            num_workers=8,
+            pin_memory=False
+        )
+        # while True:
         start_time = time.time()
+
+        print(file_path)
         nme, predictions = function.inference(config, test_loader, model)
+
         print("epoch time : {}".format(time.time()-start_time))
 
-    torch.save(predictions, os.path.join(final_output_dir, 'predictions.pth'))
+        # torch.save(predictions, os.path.join(final_output_dir, 'predictions.pth'))
 
 
 if __name__ == '__main__':
