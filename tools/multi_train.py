@@ -218,12 +218,12 @@ def main():
                         temp_output = heads[key](feature_map).cuda()
                         temp_indexs = same_index[str(temp_output.size(1))]
                         loss = loss + args.loss_alpha * criterion(output[:,main_indexs],temp_output[:,temp_indexs])
-                else :
+                else:
                     # when iteration is auxiliary
                     main_output = heads[str(config.MODEL.NUM_JOINTS)](feature_map).cuda()
                     main_indexs = same_index[str(config.MODEL.NUM_JOINTS)]
                     aux_indexs  = same_index[current_landmark_num]
-                    loss = args.loss_alpha * loss + criterion(output[:,aux_indexs],main_output[:,main_indexs])
+                    loss = loss + args.loss_alpha * criterion(output[:,aux_indexs],main_output[:,main_indexs])
 
             # optimize 
             optimizer_backbone.zero_grad()
@@ -241,7 +241,7 @@ def main():
         args.aux_ratios = args.aux_ratios * ratio_speed_array
         mix_train_dataloader.change_ratios(args.aux_ratios)
         args.loss_alpha = args.loss_alpha * args.loss_decay
-        print("Change Training data ratios : {:.4f} Mixed Loss alpha: {:.4f}".format(args.aux_ratios,args.loss_alpha))
+        print("Change Training data ratios : {} Mixed Loss alpha: {}".format(args.aux_ratios,args.loss_alpha))
 
         # validate main dataset
         val_nme, predictions = function.mix_val(config,main_val_loader,backbone,heads[str(config.MODEL.NUM_JOINTS)],criterion,epoch)
