@@ -27,12 +27,12 @@ test_files = {
 }
 
 test_files["WFLW"] = [ 
-    # "data/wflw/face_landmarks_wflw_test_blur.csv",
-    # "data/wflw/face_landmarks_wflw_test_expression.csv",
-    # "data/wflw/face_landmarks_wflw_test_illumination.csv",
-    # "data/wflw/face_landmarks_wflw_test_largepose.csv",
-    # "data/wflw/face_landmarks_wflw_test_makeup.csv",
-    # "data/wflw/face_landmarks_wflw_test_occlusion.csv",
+    "data/wflw/face_landmarks_wflw_test_blur.csv",
+    "data/wflw/face_landmarks_wflw_test_expression.csv",
+    "data/wflw/face_landmarks_wflw_test_illumination.csv",
+    "data/wflw/face_landmarks_wflw_test_largepose.csv",
+    "data/wflw/face_landmarks_wflw_test_makeup.csv",
+    "data/wflw/face_landmarks_wflw_test_occlusion.csv",
     "data/wflw/face_landmarks_wflw_test.csv"
     ]
 
