@@ -259,6 +259,11 @@ class HighResolutionNet(nn.Module):
         extra = config.MODEL.EXTRA
         super(HighResolutionNet, self).__init__()
 
+        if 'use_relu' in kwargs.keys():
+            self.use_relu = kwargs['use_relu']
+        else :
+            self.use_relu = False
+
         # stem net
         self.conv1 = nn.Conv2d(3, 64, kernel_size=3, stride=2, padding=1,
                                bias=False)
@@ -318,6 +323,7 @@ class HighResolutionNet(nn.Module):
                 stride=1,
                 padding=1 if extra.FINAL_CONV_KERNEL == 3 else 0)
         )
+        self.end_relu = nn.ReLU(inplace=True)
 
     def _make_transition_layer(
             self, num_channels_pre_layer, num_channels_cur_layer):
@@ -442,6 +448,9 @@ class HighResolutionNet(nn.Module):
         x3 = F.interpolate(x[3], size=(height, width), mode='bilinear', align_corners=False)
         x = torch.cat([x[0], x1, x2, x3], 1)
         x = self.head(x)
+
+        if self.use_relu:
+            x = self.end_relu(x)
 
         return x
 

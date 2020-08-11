@@ -16,9 +16,6 @@ from lib.datasets import get_dataset
 from lib.core import function
 from lib.utils import utils
 
-# import torch.distributed as dist
-# dist.init_process_group(backend='nccl')
-
 def parse_args():
 
     parser = argparse.ArgumentParser(description='Train Face Alignment')
@@ -26,6 +23,7 @@ def parse_args():
     parser.add_argument('--cfg', help='experiment configuration filename',
                         type=str, default="experiments/wflw/face_alignment_wflw_hrnet_w18.yaml")
 
+    parser.add_argument('--resume_checkpoint',type=str,default='hrnetv2_pretrained/HR18-WFLW.pth')
     parser.add_argument('--load_folder',type=str,default='output/WFLW/face_alignment_wflw_hrnet_w18')
     parser.add_argument('--save_folder',type=str,default='output/WFLW/face_alignment_wflw_hrnet_w18/lossL1')
     parser.add_argument('--load_epoch',type=bool,default=False,help="If load epoch and lr infos")
@@ -33,6 +31,8 @@ def parse_args():
     parser.add_argument('--pretrained',type=str,default="")
     parser.add_argument('--gpus',type=str,default="0")
     parser.add_argument('--lr',type=float,default=1e-4)
+    parser.add_argument('--use_relu',action='store_true',default=False,help="use Relu in the end of hrnet")
+    parser.add_argument('--loss',type=str,default="L2")
 
     args = parser.parse_args()
     update_config(config, args)
@@ -66,7 +66,7 @@ def main():
     cudnn.determinstic = config.CUDNN.DETERMINISTIC
     cudnn.enabled = config.CUDNN.ENABLED
 
-    model = models.get_face_alignment_net(config)
+    model = models.get_face_alignment_net(config,use_relu=args.use_relu)
 
     # copy model files
     writer_dict = {
@@ -82,32 +82,50 @@ def main():
     logger.info("load model success.")
 
     # loss
-    criterion = torch.nn.MSELoss(size_average=True).cuda()
-    # criterion = torch.nn.SmoothL1Loss(size_average=True).cuda()
+    if args.loss == "L2":
+        criterion = torch.nn.MSELoss(size_average=True).cuda()
+    elif args.loss == "L1":
+        criterion = torch.nn.SmoothL1Loss(size_average=True).cuda()
+    elif args.loss == "BCE":
+        criterion = torch.nn.BCEWithLogitsLoss(size_average=True).cuda()
+    else:
+        print("Error : Not support Loss function")
+        exit()
 
     optimizer = utils.get_optimizer(config, model)
     best_nme = 100
     last_epoch = config.TRAIN.BEGIN_EPOCH
     if config.TRAIN.RESUME:
-        model_state_file = os.path.join(final_output_dir,
-                                        'latest.pth')
-        if os.path.islink(model_state_file):
-            checkpoint = torch.load(model_state_file)
-            if args.load_epoch : 
-                last_epoch = checkpoint['epoch']
-                optimizer.load_state_dict(checkpoint['optimizer'])
-                best_nme = checkpoint['best_nme']
-            model.load_state_dict(checkpoint['state_dict'])
-            logger.info("=> loaded checkpoint (epoch {})"
-                  .format(checkpoint['epoch']))
-            best_checkpoint_path = os.path.join(final_output_dir,'model_best.pth')
-            if args.load_best and os.path.exists(best_checkpoint_path):
-                best_checkpoint = torch.load(best_checkpoint_path)
-                model.load_state_dict(best_checkpoint)
-                best_nme = checkpoint['best_nme']
-                logger.info("=> loaded best checkpoint.")
+        
+        if os.path.exists(args.resume_checkpoint):
+            state_dict = torch.load(args.resume_checkpoint)
+            if 'state_dict' in state_dict.keys():
+                state_dict = state_dict['state_dict']
+                model.load_state_dict(state_dict)
+            else:
+                model.module.load_state_dict(state_dict)
+            print("Load resume checkpoints success")
+
         else:
-            logger.info("=> no checkpoint found")
+            model_state_file = os.path.join(final_output_dir,
+                                            'latest.pth')
+            if os.path.islink(model_state_file):
+                checkpoint = torch.load(model_state_file)
+                if args.load_epoch : 
+                    last_epoch = checkpoint['epoch']
+                    optimizer.load_state_dict(checkpoint['optimizer'])
+                    best_nme = checkpoint['best_nme']
+                model.load_state_dict(checkpoint['state_dict'])
+                logger.info("=> loaded checkpoint (epoch {})"
+                    .format(checkpoint['epoch']))
+                best_checkpoint_path = os.path.join(final_output_dir,'model_best.pth')
+                if args.load_best and os.path.exists(best_checkpoint_path):
+                    best_checkpoint = torch.load(best_checkpoint_path)
+                    model.load_state_dict(best_checkpoint)
+                    best_nme = checkpoint['best_nme']
+                    logger.info("=> loaded best checkpoint.")
+            else:
+                logger.info("=> no checkpoint found")
 
     if isinstance(config.TRAIN.LR_STEP, list):
         lr_scheduler = torch.optim.lr_scheduler.MultiStepLR(

@@ -82,7 +82,7 @@ def main():
     config.MODEL.INIT_WEIGHTS = False
     config.freeze()
 
-    model = models.get_face_alignment_net(config)
+    model = models.get_face_alignment_net(config,use_relu=False)
 
     devices = torch.device("cuda:0")
     model = nn.DataParallel(model, device_ids=range(torch.cuda.device_count())).cuda()
