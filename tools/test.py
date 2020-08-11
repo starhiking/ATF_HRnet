@@ -23,12 +23,12 @@ test_files = {
 }
 
 test_files["WFLW"] = [ 
-    # "data/wflw/face_landmarks_wflw_test_blur.csv",
-    # "data/wflw/face_landmarks_wflw_test_expression.csv",
-    # "data/wflw/face_landmarks_wflw_test_illumination.csv",
-    # "data/wflw/face_landmarks_wflw_test_largepose.csv",
-    # "data/wflw/face_landmarks_wflw_test_makeup.csv",
-    # "data/wflw/face_landmarks_wflw_test_occlusion.csv",
+    "data/wflw/face_landmarks_wflw_test_blur.csv",
+    "data/wflw/face_landmarks_wflw_test_expression.csv",
+    "data/wflw/face_landmarks_wflw_test_illumination.csv",
+    "data/wflw/face_landmarks_wflw_test_largepose.csv",
+    "data/wflw/face_landmarks_wflw_test_makeup.csv",
+    "data/wflw/face_landmarks_wflw_test_occlusion.csv",
     "data/wflw/face_landmarks_wflw_test.csv"
     ]
 
@@ -54,8 +54,8 @@ def parse_args():
     parser = argparse.ArgumentParser(description='Train Face Alignment')
 
     parser.add_argument('--cfg', help='experiment configuration filename',
-                         type=str, default="experiments/wflw/face_alignment_wflw_hrnet_w18.yaml")
-    parser.add_argument('--model-file', help='model parameters',  type=str, default="hrnetv2_pretrained/HR18-WFLW.pth")
+                         type=str, default="experiments/300w/face_alignment_300w_hrnet_w18.yaml")
+    parser.add_argument('--model-file', help='model parameters',  type=str, default="hrnetv2_pretrained/HR18-300W.pth")
 
     args = parser.parse_args()
     update_config(config, args)
@@ -96,7 +96,7 @@ def main():
         state_dict = state_dict['state_dict']
         model.load_state_dict(state_dict)
     else:
-        model.module.load_state_dict(state_dict)
+        model.load_state_dict(state_dict)
 
     print("load weight paramters success.")
 
