@@ -66,7 +66,7 @@ def main():
     cudnn.determinstic = config.CUDNN.DETERMINISTIC
     cudnn.enabled = config.CUDNN.ENABLED
 
-    model = models.get_face_alignment_net(config,use_relu=args.use_relu)
+    model = models.get_face_alignment_net(config,use_relu=args.use_relu,BCE_loss=args.loss=="BCE")
 
     # copy model files
     writer_dict = {
@@ -87,7 +87,7 @@ def main():
     elif args.loss == "L1":
         criterion = torch.nn.SmoothL1Loss(size_average=True).cuda()
     elif args.loss == "BCE":
-        criterion = torch.nn.BCEWithLogitsLoss(size_average=True).cuda()
+        criterion = torch.nn.BCELoss(size_average=True).cuda()
     else:
         print("Error : Not support Loss function")
         exit()

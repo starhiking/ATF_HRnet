@@ -264,6 +264,11 @@ class HighResolutionNet(nn.Module):
         else :
             self.use_relu = False
 
+        if 'BCE_loss' in kwargs.keys():
+            self.use_sigmoid = kwargs['BCE_loss']
+        else:
+            self.use_sigmoid = False
+
         # stem net
         self.conv1 = nn.Conv2d(3, 64, kernel_size=3, stride=2, padding=1,
                                bias=False)
@@ -324,6 +329,7 @@ class HighResolutionNet(nn.Module):
                 padding=1 if extra.FINAL_CONV_KERNEL == 3 else 0)
         )
         self.end_relu = nn.ReLU(inplace=True)
+        self.end_sigmoid = nn.Sigmoid()
 
     def _make_transition_layer(
             self, num_channels_pre_layer, num_channels_cur_layer):
@@ -452,6 +458,8 @@ class HighResolutionNet(nn.Module):
         if self.use_relu:
             x = self.end_relu(x)
 
+        if self.use_sigmoid:
+            x = self.end_sigmoid(x)
         return x
 
     def init_weights(self, pretrained=''):
