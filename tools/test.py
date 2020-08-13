@@ -23,13 +23,13 @@ test_files = {
 }
 
 test_files["WFLW"] = [ 
+    "data/wflw/face_landmarks_wflw_test.csv",
     "data/wflw/face_landmarks_wflw_test_blur.csv",
     "data/wflw/face_landmarks_wflw_test_expression.csv",
     "data/wflw/face_landmarks_wflw_test_illumination.csv",
     "data/wflw/face_landmarks_wflw_test_largepose.csv",
     "data/wflw/face_landmarks_wflw_test_makeup.csv",
-    "data/wflw/face_landmarks_wflw_test_occlusion.csv",
-    "data/wflw/face_landmarks_wflw_test.csv"
+    "data/wflw/face_landmarks_wflw_test_occlusion.csv"
     ]
 
 test_files["300W"] = [
@@ -40,8 +40,8 @@ test_files["300W"] = [
     ]
 
 test_files["AFLW"] = [
-    "data/aflw/face_landmarks_aflw_test_frontal.csv",
     "data/aflw/face_landmarks_aflw_test.csv",
+    "data/aflw/face_landmarks_aflw_test_frontal.csv"
 ]
 
 test_files["COFW"] = [
@@ -56,6 +56,7 @@ def parse_args():
     parser.add_argument('--cfg', help='experiment configuration filename',
                          type=str, default="experiments/300w/face_alignment_300w_hrnet_w18.yaml")
     parser.add_argument('--model-file', help='model parameters',  type=str, default="hrnetv2_pretrained/HR18-300W.pth")
+    parser.add_argument('--BCE_loss',action='store_true',default=False)
 
     args = parser.parse_args()
     update_config(config, args)
@@ -82,7 +83,7 @@ def main():
     config.MODEL.INIT_WEIGHTS = False
     config.freeze()
 
-    model = models.get_face_alignment_net(config,use_relu=False)
+    model = models.get_face_alignment_net(config,use_relu=False,BCE_loss=args.BCE_loss)
 
     devices = torch.device("cuda:0")
     model = nn.DataParallel(model, device_ids=range(torch.cuda.device_count())).cuda()
