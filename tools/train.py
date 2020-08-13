@@ -33,10 +33,12 @@ def parse_args():
     parser.add_argument('--lr',type=float,default=1e-4)
     parser.add_argument('--use_relu',action='store_true',default=False,help="use Relu in the end of hrnet")
     parser.add_argument('--loss',type=str,default="L2")
+    parser.add_argument('--sigma',type=float,default=1.5)
 
     args = parser.parse_args()
     update_config(config, args)
     
+    config["MODEL"]["SIGMA"] = args.sigma
     config["TRAIN"]["LR"] = args.lr
     if args.pretrained :
         config["MODEL"]["PRETRAINED"] = args.pretrained
