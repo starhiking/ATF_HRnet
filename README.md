@@ -1,7 +1,9 @@
-# Modify the training skills With ATF
+# Modify the training skills With [ATF](https://dl.acm.org/doi/10.1145/3394171.3414037)
 
 Training bash refers to tools/multi_train.py
 Test bashes refer to tools/test_filelist.py and tools/test_branches.py
+NME on WFLW reaches from 4.60 to 4.49, 300W from 3.32 to 3.17, COFW from 3.45 to 3.32
+
 
 # High-resolution networks (HRNets) for facial landmark detection
 ## Introduction 
