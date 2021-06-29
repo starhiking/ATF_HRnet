@@ -1,3 +1,8 @@
+# Modify the training skills With ATF
+
+Training bash refers to tools/multi_train.py
+Test bashes refer to tools/test_filelist.py and tools/test_branches.py
+
 # High-resolution networks (HRNets) for facial landmark detection
 ## Introduction 
 This is the official code of [High-Resolution Representations for Facial Landmark Detection](https://arxiv.org/pdf/1904.04514.pdf). 
